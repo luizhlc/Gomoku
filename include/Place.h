@@ -17,11 +17,13 @@
 
 class Place {
  public:
-    Place(int);
+    Place(int = 0);
     Place(const Place& orig);
     ~Place();
     void generate_neighborhood(std::vector<Place*>);
     bool put_piece(int); 
+    int find_piar(int,int,int);
+    int find_piar(int,int);
 
  private:
     short int _owner; // -1 = Wall; 0 = free; 1= Player 1; 2= Player 2;

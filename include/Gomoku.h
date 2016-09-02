@@ -35,6 +35,7 @@ private:
     Player _p1, _p2;
     Player * _active;
     int _size;
+    std::pair<int, int> last_played; // Atualizado toda vez que uma jogada é feita.
 
     void generate_places();
     void generate_neighbors();

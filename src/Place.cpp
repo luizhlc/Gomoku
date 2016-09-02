@@ -14,8 +14,7 @@
 #include "../include/Place.h"
 
 
-Place::Place(int owner) {
-    _owner = owner;
+Place::Place(int owner) : _owner(owner) {
 }
 
 Place::Place(const Place& orig) {
@@ -35,3 +34,16 @@ bool Place::put_piece(int piece) {
 	return true;
 }
 
+int Place::find_piar(int direction, int lvl) {
+    int in_a_row = 1;
+    in_a_row += _neighborhood[direction]->find_piar(direction, lvl-1, _owner);
+    return in_a_row;
+} // pieces in a row
+
+int Place::find_piar(int direction, int lvl, int color) {
+    if (color != _owner || lvl < 1) {
+        return 0;
+    } else {
+        return 1+_neighborhood[direction]->find_piar(direction, lvl-1, _owner);
+    }
+}

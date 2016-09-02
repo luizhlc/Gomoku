@@ -12,14 +12,19 @@
  */
 
 #include "../include/Gomoku.h"
+#define NW 0
+#define N  1
+#define NE 2
+#define W  3
+#define E  4
+#define SW 5
+#define S  6
+#define SE 7
 
 Gomoku::Gomoku(Player p1, Player p2, int size = 15) : _p1(p1), _p2(p2), _size(size) {
     _places.reserve(size+2);
-    
     generate_places();   
     generate_neighbors();
-    
-
     _active = &_p1;
 }
 
@@ -35,7 +40,7 @@ void Gomoku::generate_places() {
         _places[i][0] = Place(-1); // Wall O 
         
         for (int j = 1; j < _size+1; ++j) {
-            _places[i][j] = Place(0); //playable places
+            _places[i][j] = Place(); //playable places
         }
         _places[i][_size+1] = Place(-1); // Wall L
     }
@@ -67,13 +72,19 @@ void Gomoku::generate_neighbors() {
 bool Gomoku::place_piece(int x, int y){
     bool success = _places[x][y].put_piece(_active->color());
     if (success) {
+        last_played = std::make_pair(x,y);
+        check_game_won();
         change_active_player();
     }
     return success;
 } 
 
-int Gomoku::check_game_won(){
-    return 0;
+int Gomoku::check_game_won() {
+    // This should be refactored
+    int game_won = 0;
+    int playing = _active->color();
+
+    return game_won;
 }
 
 std::vector<std::pair<int, int> > Gomoku::check_four_in_row(){
