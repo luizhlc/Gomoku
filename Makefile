@@ -1,128 +1,93 @@
-#
-#  There exist several targets which are by default empty and which can be 
-#  used for execution of your targets. These targets are usually executed 
-#  before and after some main targets. They are: 
-#
-#     .build-pre:              called before 'build' target
-#     .build-post:             called after 'build' target
-#     .clean-pre:              called before 'clean' target
-#     .clean-post:             called after 'clean' target
-#     .clobber-pre:            called before 'clobber' target
-#     .clobber-post:           called after 'clobber' target
-#     .all-pre:                called before 'all' target
-#     .all-post:               called after 'all' target
-#     .help-pre:               called before 'help' target
-#     .help-post:              called after 'help' target
-#
-#  Targets beginning with '.' are not intended to be called on their own.
-#
-#  Main targets can be executed directly, and they are:
-#  
-#     build                    build a specific configuration
-#     clean                    remove built files from a configuration
-#     clobber                  remove all built files
-#     all                      build all configurations
-#     help                     print help mesage
-#  
-#  Targets .build-impl, .clean-impl, .clobber-impl, .all-impl, and
-#  .help-impl are implemented in nbproject/makefile-impl.mk.
-#
-#  Available make variables:
-#
-#     CND_BASEDIR                base directory for relative paths
-#     CND_DISTDIR                default top distribution directory (build artifacts)
-#     CND_BUILDDIR               default top build directory (object files, ...)
-#     CONF                       name of current configuration
-#     CND_PLATFORM_${CONF}       platform name (current configuration)
-#     CND_ARTIFACT_DIR_${CONF}   directory of build artifact (current configuration)
-#     CND_ARTIFACT_NAME_${CONF}  name of build artifact (current configuration)
-#     CND_ARTIFACT_PATH_${CONF}  path to build artifact (current configuration)
-#     CND_PACKAGE_DIR_${CONF}    directory of package (current configuration)
-#     CND_PACKAGE_NAME_${CONF}   name of package (current configuration)
-#     CND_PACKAGE_PATH_${CONF}   path to package (current configuration)
-#
-# NOCDDL
+# Created by aszdrick graf <aszdrick@gmail.com>
+# Compiler
+CXX       :=g++
+LDLIBS    :=-lstdc++ -lm `pkg-config --libs gtk+-3.0`
+LDFLAGS   :=
+CXXFLAGS  :=`pkg-config --cflags gtk+-3.0` -std=c++11 -Wall
+# Source directory
+SRCDIR    :=src
+# Headers directory
+HDRDIR    :=include
+# Build directory
+BUILDIR   :=build
+# Binaries directory
+BINDIR    :=bin
+# Tests directory
+TESTDIR   :=tests
+# Main file
+MAIN      :=main
+#Include flag
+INCLUDE   :=-I$(HDRDIR) -I$(HDRDIR)/shapes
+# Sources
+SRC       :=$(shell find $(SRCDIR) -name '*.cpp')
+# Test(s) source(s)
+TESTSRC   :=$(shell find $(TESTDIR) -name '*.cpp' 2> /dev/null)
+# Dependencies
+DEP       :=$(patsubst $(SRCDIR)/%.cpp,$(SRCDIR)/.%.d,$(SRC)) \
+$(patsubst $(TESTDIR)/%.cpp,$(TESTDIR)/.%.d,$(TESTSRC))
+# Objects
+OBJ       :=$(patsubst $(SRCDIR)/%.cpp,$(BUILDIR)/%.o,$(SRC))
+# Pure objects, without main
+PUREOBJ   :=$(filter-out $(BUILDIR)/$(MAIN).o,$(OBJ))
+# Test(s) object(s)
+TESTOBJ     :=$(patsubst %.cpp,$(BUILDIR)/%.o,$(TESTSRC))
+# Program executable
+EXEC      :=$(BINDIR)/gomok
+# Test(s) executable(s)
+TESTS     :=$(patsubst $(TESTDIR)/%.cpp,$(BINDIR)/%,$(TESTSRC))
 
+.PHONY: all makedir tests clean clean_all
 
-# Environment 
-MKDIR=mkdir
-CP=cp
-CCADMIN=CCadmin
+all: makedir $(EXEC)
 
+$(EXEC): $(OBJ)
+	@echo "[linking] $@"
+	@$(CXX) $(OBJ) -o $@ $(LDLIBS) $(LDFLAGS)
 
-# build
-build: .build-post
+$(BUILDIR)/%.o: $(SRCDIR)/%.cpp
+	@echo "[  $(CXX)  ] $< -> .o"
+	@mkdir -p $(BUILDIR)/$(*D)
+	@$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
-.build-pre:
-# Add your pre 'build' code here...
+makedir: | $(BUILDIR) $(BINDIR)
 
-.build-post: .build-impl
-# Add your post 'build' code here...
+$(BINDIR) $(BUILDIR):
+	@echo "[ mkdir ] Creating directory '$@'"
+	@mkdir -p $@
 
+# For each .cpp file, creates a .d file with all dependencies of .cpp,
+# including .d as target (to ensure updated dependencies, in case of
+# adding a new include or nested include)
+$(SRCDIR)/.%.d: $(SRCDIR)/%.cpp
+	@echo "[makedep] $< -> .d"
+	@$(CXX) -MM -MP -MT "$(BUILDIR)/$*.o $@" -MF "$@" $< $(INCLUDE) $(CXXFLAGS)
 
-# clean
-clean: .clean-post
+tests: makedir $(TESTS)
 
-.clean-pre:
-# Add your pre 'clean' code here...
+$(TESTS): $(PUREOBJ) $(TESTOBJ)
+	@echo "[linking] $@"
+	@$(CXX) $(PUREOBJ) $(BUILDIR)/$(TESTDIR)/$(@F).o -o $@ $(LDLIBS) $(LDFLAGS)
 
-.clean-post: .clean-impl
-# Add your post 'clean' code here...
+$(BUILDIR)/%.o: %.cpp
+	@echo "[  $(CXX)  ] $< -> .o"
+	@mkdir -p $(BUILDIR)/$(*D)
+	@$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
+$(TESTDIR)/%.d: $(TESTDIR)/%.cpp
+	@echo "[makedep] $< -> .d"
+	@$(CXX) -MM -MP -MT "$(BUILDIR)/$(TESTDIR)$*.o $@" -MF "$@" $< $(INCLUDE) $(CXXFLAGS)
 
-# clobber
-clobber: .clobber-post
+# Only remove object files
+clean:
+	@$(RM) -r $(BUILDIR)
 
-.clobber-pre:
-# Add your pre 'clobber' code here...
+# Remove object, binary and dependency files
+clean_all:
+	@$(RM) -r $(BUILDIR)
+	@$(RM) -r $(BINDIR)
+	@$(RM) -r $(DEP)
 
-.clobber-post: .clobber-impl
-# Add your post 'clobber' code here...
-
-
-# all
-all: .all-post
-
-.all-pre:
-# Add your pre 'all' code here...
-
-.all-post: .all-impl
-# Add your post 'all' code here...
-
-
-# build tests
-build-tests: .build-tests-post
-
-.build-tests-pre:
-# Add your pre 'build-tests' code here...
-
-.build-tests-post: .build-tests-impl
-# Add your post 'build-tests' code here...
-
-
-# run tests
-test: .test-post
-
-.test-pre: build-tests
-# Add your pre 'test' code here...
-
-.test-post: .test-impl
-# Add your post 'test' code here...
-
-
-# help
-help: .help-post
-
-.help-pre:
-# Add your pre 'help' code here...
-
-.help-post: .help-impl
-# Add your post 'help' code here...
-
-
-
-# include project implementation makefile
-include nbproject/Makefile-impl.mk
-
-# include project make variables
-include nbproject/Makefile-variables.mk
+# Do not include list of dependencies if make was called with target clean_all
+ifneq ($(MAKECMDGOALS), clean_all)
+-include $(DEP)
+endif
